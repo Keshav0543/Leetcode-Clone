@@ -30,7 +30,7 @@ const InitializeConnection=async ()=>{
 
     }
     catch(err){
-        console.log("Error: "+err);
+        console.log("Error: "+err.message);
     }
 }
 InitializeConnection();
