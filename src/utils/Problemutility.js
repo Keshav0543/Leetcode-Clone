@@ -18,7 +18,8 @@ const submitBatch = async (submissions) => {
       url: "https://ce.judge0.com/submissions/batch",
       params: {
         base64_encoded: "false",
-        wait:"true"
+        wait:"true",
+        fields: "stdout,stderr,status_id,status,token,time,memory,compile_output,message,expected_output,stdin"
       },
       headers: {
         "content-type": "application/json",
@@ -40,7 +41,14 @@ const submitToken = async (resultToken) => {
   try {
     while (1) {
       const result = await axios.get(
-        `https://ce.judge0.com/submissions/batch?tokens=${token}&base64_encoded=false`,
+        `https://ce.judge0.com/submissions/batch`,
+        {
+          params: {
+            tokens: token,
+            base64_encoded: "false",
+            fields: "stdout,stderr,status_id,status,token,time,memory,compile_output,message,expected_output,stdin"
+          },
+        }
       );
       const results = result.data.submissions;
       const isCompleted = results.every((ans) => ans.status.id > 2);
@@ -53,11 +61,9 @@ const submitToken = async (resultToken) => {
 };
 
 const waiting=async (timer)=>{
-  new Promise((resolve)=>{
-    setTimeout(()=>{
-      return resolve(1);
-    },timer)
-  })
+  return  new Promise((resolve)=>{
+    setTimeout(()=>resolve(1),timer)
+  });
 }
 
 export  { getlanguageId, submitBatch, submitToken };

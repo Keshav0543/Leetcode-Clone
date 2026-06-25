@@ -36,7 +36,7 @@ const NewProblem = async (req, res) => {
       const resultToken = submitResult.map((value) => value.token);
 
       const FinalResult = await submitToken(resultToken);
-
+      
       for (const test of FinalResult) {
         if (test.status.id > 3) {
           throw new Error(
@@ -45,6 +45,7 @@ const NewProblem = async (req, res) => {
         }
       }
     }
+
 
     //Store in Database
     const Userproblem = await problem.create({
@@ -136,7 +137,7 @@ const FetchProblem= async (req,res)=> {
     const id=req.params.id;
     if(!id)throw new Error("Id is missing...");
 
-    const DsaProb=await problem.findById(id);
+    const DsaProb=await problem.findById(id).select('title description difficultylevel tags  visibleTestcases  startCode referenceSolution');
     if(!DsaProb)throw new Error("Required Valid Id...");
 
     res.status(200).send(DsaProb);
@@ -148,7 +149,7 @@ const FetchProblem= async (req,res)=> {
 
 const getAllProblem= async (req,res)=> {
   try{
-    const AllProb=await problem.find({});
+    const AllProb=await problem.find({}).select('title tags');
 
     if(AllProb.length==0)throw new Error("Problem is missing...");
     res.status(200).send(AllProb);
