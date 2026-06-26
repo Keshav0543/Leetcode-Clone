@@ -36,7 +36,7 @@ const NewProblem = async (req, res) => {
       const resultToken = submitResult.map((value) => value.token);
 
       const FinalResult = await submitToken(resultToken);
-      
+
       for (const test of FinalResult) {
         if (test.status.id > 3) {
           throw new Error(
@@ -45,7 +45,6 @@ const NewProblem = async (req, res) => {
         }
       }
     }
-
 
     //Store in Database
     const Userproblem = await problem.create({
@@ -100,81 +99,91 @@ const UpdateProblem = async (req, res) => {
       }
     }
 
-    if(!id)throw new Error("Missing Id Field");
+    if (!id) throw new Error("Missing Id Field");
 
-    const DsaProb=await problem.findById(id);
-    if(!DsaProb)throw new Error("Required Valid Id...");
+    const DsaProb = await problem.findById(id);
+    if (!DsaProb) throw new Error("Required Valid Id...");
 
-    const update=await problem.findByIdAndUpdate(id,req.body,{new:true, 
-      runValidators:true
+    const update = await problem.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
     });
 
     res.status(200).send("Problem Updated SuccessFully...");
-
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
 };
 
-const DeleteProblem =async (req,res)=> {
-  try{
-    const id=req.params.id;
-    if(!id)throw new Error("Id is required...");
+const DeleteProblem = async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) throw new Error("Id is required...");
 
-    const DsaProb=await problem.findById(id);
-    if(!DsaProb)throw new Error("Invalid Id...");
+    const DsaProb = await problem.findById(id);
+    if (!DsaProb) throw new Error("Invalid Id...");
     await problem.findByIdAndDelete(id);
 
     res.status(200).send("Problem Deleted SuccessFully...");
-  }
-  catch(err){
-    res.status(400).send("Error: "+err.message);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
   }
 };
 
-const FetchProblem= async (req,res)=> {
-  try{
-    const id=req.params.id;
-    if(!id)throw new Error("Id is missing...");
+const FetchProblem = async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) throw new Error("Id is missing...");
 
-    const DsaProb=await problem.findById(id).select('title description difficultylevel tags  visibleTestcases  startCode referenceSolution');
-    if(!DsaProb)throw new Error("Required Valid Id...");
+    const DsaProb = await problem
+      .findById(id)
+      .select(
+        "title description difficultylevel tags  visibleTestcases  startCode referenceSolution",
+      );
+    if (!DsaProb) throw new Error("Required Valid Id...");
 
     res.status(200).send(DsaProb);
-  }
-  catch(err){
-    res.status(400).send("Error: "+err.message);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
   }
 };
 
-const getAllProblem= async (req,res)=> {
-  try{
-    const AllProb=await problem.find({}).select('title tags');
+const getAllProblem = async (req, res) => {
+  try {
+    const AllProb = await problem.find({}).select("title tags");
 
-    if(AllProb.length==0)throw new Error("Problem is missing...");
+    if (AllProb.length == 0) throw new Error("Problem is missing...");
     res.status(200).send(AllProb);
-  }
-  catch(err){
-    res.status(400).send("Error: "+err.message);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
   }
 };
 
-const SolvedProblem= async (req,res)=> {
-  try{
-    const id=req.params.id;
-    
-    if(!id)throw new Error("Required Id...");
-    const data=await user.findById(id);
-    if(!data)throw new Error("Invalid Id...");
+const SolvedProblem = async (req, res) => {
+  try {
+    const id = req.result._id;
 
-    const ProblemSolve=data.ProblemSolved;
-    if(ProblemSolve.length==0)throw new Error("No Problem Solved Right Now...");
-    res.status(200).send(ProblemSolve);
+    if (!id) throw new Error("Required Id...");
+
+    const ProblemSolve = req.result.ProblemSolved;
+    if (ProblemSolve.length == 0)
+      throw new Error("No Problem Solved Right Now...");
+
+    const UserInfo = await req.result.populate("ProblemSolved","title tags");
+
+    const TitleInfo = UserInfo.ProblemSolved;
+
+    res.status(200).send(TitleInfo);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
   }
-  catch(err){
-    res.status(400).send("Error: "+err.message);
-  }
-}
+};
 
-
-export default { NewProblem, UpdateProblem, DeleteProblem, FetchProblem, getAllProblem, SolvedProblem};
+export default {
+  NewProblem,
+  UpdateProblem,
+  DeleteProblem,
+  FetchProblem,
+  getAllProblem,
+  SolvedProblem,
+};

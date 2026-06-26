@@ -6,7 +6,7 @@ import cookieparser from "cookie-parser";
 import authRouter from "./Routes/userauthen.js";
 import client from "./config/redis.js";
 import problemRouter from "./Routes/problemCreator.js";
-// import SubmitRouter from "./Routes/submit.js";
+import SubmitRouter from "./Routes/submit.js";
 
 const app=express();
 
@@ -16,6 +16,7 @@ app.use(express.json());
 app.use(cookieparser());
 app.use("/user",authRouter);
 app.use("/user",problemRouter);
+app.use("/user",SubmitRouter);
 
 
 const InitializeConnection=async ()=>{
@@ -34,4 +35,4 @@ const InitializeConnection=async ()=>{
         console.log("Error: "+err.message);
     }
 }
-InitializeConnection();
+InitializeConnection();  

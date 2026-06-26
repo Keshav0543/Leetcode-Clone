@@ -1,6 +1,10 @@
 import problem from "../models/problem.js";
 import SubmissionS from "../models/Submission.js";
-import Problemutility from "../utils/Problemutility.js";
+import {
+  getlanguageId,
+  submitBatch,
+  submitToken,
+} from "../utils/Problemutility.js";
 
 const SubmitCode = async (req, res) => {
   try {
@@ -26,7 +30,7 @@ const SubmitCode = async (req, res) => {
     });
 
     //Judge0 Submission
-    const LangId = Problemutility.getlanguageId(language);
+    const LangId = getlanguageId(language);
     const submission = [];
     for (const data of Problem.invisibleTestcases) {
       submission.push({
@@ -37,49 +41,51 @@ const SubmitCode = async (req, res) => {
       });
     }
 
-    const submitResult = await Problemutility.submitBatch(submission);
-    const resultToken=submitResult.map((value)=>value.token);
-    const FinalResult = await Problemutility.submitToken(resultToken);
+    const submitResult = await submitBatch(submission);
+    const resultToken = submitResult.map((value) => value.token);
+    const FinalResult = await submitToken(resultToken);
 
     //Submitted Result Update karo
-    let testCasesPassed=0;
-    let runtime=0;
-    let memory=0;
-    let status="Accepted";
-    let errorMessage=null;
+    let testCasesPassed = 0;
+    let runtime = 0;
+    let memory = 0;
+    let status = "Accepted";
+    let errorMessage = null;
 
-    for(const result of FinalResult){
-      if(result.status_id==3){
+    for (const result of FinalResult) {
+      if (result.status_id == 3) {
         testCasesPassed++;
-        runtime+=parseFloat(result.time)*1000;
-        memory=Math.max(result.memory,memory);
-      }
-      else{
-        if(result.status_id==4){
-          status="error";
-          errorMessage=result.stderr;
-        }
-        else{
-          status="wrong";
-          errorMessage=result.stderr;
+        runtime += parseFloat(result.time) * 1000;
+        memory = Math.max(result.memory, memory);
+      } else {
+        if (result.status_id == 4) {
+          status = "error";
+          errorMessage = result.stderr;
+        } else {
+          status = "wrong";
+          errorMessage = result.stderr;
         }
       }
     }
 
     //Store the result in Database
-    SubmittedResult.status=status;
-    SubmittedResult.testCasesPassed=testCasesPassed;
-    SubmittedResult.runtime=runtime;
-    SubmittedResult.memory=memory;
-    SubmittedResult.errorMessage=errorMessage;
+    SubmittedResult.status = status;
+    SubmittedResult.testCasesPassed = testCasesPassed;
+    SubmittedResult.runtime = runtime;
+    SubmittedResult.memory = memory;
+    SubmittedResult.errorMessage = errorMessage;
 
     await SubmittedResult.save();
-    res.status(201).send("Submitted_Result...");
 
+    //Problem Id insert in User Schema problem section if it is not present
+    if (req.result.ProblemSolved.length==0 || !req.result.ProblemSolved.includes(problemId)) {
+      req.result.ProblemSolved.push(problemId);
+      await req.result.save();
+    }
+    res.status(201).send("Submitted_Result...");
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
 };
-
 
 export default { SubmitCode };

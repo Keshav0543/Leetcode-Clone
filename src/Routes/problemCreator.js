@@ -13,6 +13,6 @@ problemRouter.delete('/Delete/:id',adminMiddleware,ProblemController.DeleteProbl
 
 problemRouter.get('/ProblemById/:id',userMiddleware,ProblemController.FetchProblem);
 problemRouter.get('/GetAllProblem',userMiddleware,ProblemController.getAllProblem);
-problemRouter.get('/ProblemSolvedByUser/:id',userMiddleware,ProblemController.SolvedProblem);
+problemRouter.get('/ProblemSolvedByUser',userMiddleware,ProblemController.SolvedProblem);
 
 export default problemRouter;
