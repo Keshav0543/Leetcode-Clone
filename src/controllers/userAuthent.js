@@ -3,7 +3,7 @@ import validate from "../utils/validator.js";
 import Submission from "../models/Submission.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-// import client from "../config/redis.js";
+import client from "../config/redis.js";
 
 
 const register= async (req,res)=> {
