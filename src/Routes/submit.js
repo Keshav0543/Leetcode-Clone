@@ -5,6 +5,6 @@ const SubmitRouter=express.Router();
 
 
 SubmitRouter.post("/submit/:id", userMiddleware, SubmitController.SubmitCode);
-
+SubmitRouter.post("/run/:id", userMiddleware,SubmitController.RunCode);
 
 export default SubmitRouter;

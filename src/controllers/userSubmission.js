@@ -88,4 +88,45 @@ const SubmitCode = async (req, res) => {
   }
 };
 
-export default { SubmitCode };
+const RunCode= async (req,res) => {
+  try{
+    const { code, language } = req.body;
+    const id=req.params.id;
+    if(!id)throw new Error("Required Missing Field...");
+
+    const Problem=await problem.findById(id);
+    //Judge0 Submission
+    const LangId = getlanguageId(language);
+    if (!LangId)
+    throw new Error("Unsupported language");
+    const submission = [];
+    for (const data of Problem.visibleTestcases) {
+      submission.push({
+        source_code: code,
+        language_id: LangId,
+        stdin: data.input,
+        expected_output: data.output,
+      });
+    }
+    
+    const submitResult = await submitBatch(submission);
+    const resultToken = submitResult.map((value) => value.token);
+    const FinalResult = await submitToken(resultToken);
+    const ans=[];
+    for(const data of FinalResult){
+      ans.push({
+      stdin:data.stdin,
+      stdout:data.stdout,
+      status:data.status,
+      memory:data.memory,
+      time:Number(data.time)*1000
+      })
+    }
+    res.status(200).send(ans);
+  }
+  catch(err){
+    res.status(400).send("Error: "+err.message);
+  }
+};
+
+export default { SubmitCode, RunCode};

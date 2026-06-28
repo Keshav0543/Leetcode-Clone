@@ -1,11 +1,12 @@
 import User from "../models/user.js";
 import validate from "../utils/validator.js";
+import Submission from "../models/Submission.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // import client from "../config/redis.js";
 
 
-const register= async (req,res)=>{
+const register= async (req,res)=> {
     try{
         //Validate the data
         validate(req.body);
@@ -23,7 +24,7 @@ const register= async (req,res)=>{
     }
 }
 
-const login= async (req,res)=>{
+const login= async (req,res)=> {
     try{
         const {emailId,password}=req.body;
         if(!emailId)throw new Error("Invalid credentials");
@@ -44,7 +45,7 @@ const login= async (req,res)=>{
     }
 }
 
-const getProfile= async (req,res)=>{
+const getProfile= async (req,res)=> {
     try{
         res.status(200).send(req.result);
     }
@@ -53,7 +54,7 @@ const getProfile= async (req,res)=>{
     }
 }
 
-const logout= async (req,res)=>{
+const logout= async (req,res)=> {
     try{
 
         const token=req.cookies.token;
@@ -69,7 +70,7 @@ const logout= async (req,res)=>{
     }
 }
 
-const admin=async (req,res)=>{
+const admin=async (req,res)=> {
     try{
         //Validate the data
         validate(req.body);
@@ -86,5 +87,20 @@ const admin=async (req,res)=>{
     }
 }
 
+const deleteProfile=async (req,res) => {
+    try{
+        const id=req.result._id;
 
-export default {register,login,getProfile,logout,admin}; 
+        //User has Deleted...
+        await User.findByIdAndDelete(id);
+        //User Submission deletion...
+        await Submission.deleteMany({userId:id});
+        res.status(200).send("User Deleted SuccessFully...");
+    }
+    catch(err){
+        res.status(500).send("Internal Server Error...");
+    }
+}
+
+
+export default {register,login,getProfile,logout,admin,deleteProfile}; 
