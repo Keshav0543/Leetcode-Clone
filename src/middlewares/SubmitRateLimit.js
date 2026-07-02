@@ -3,7 +3,7 @@ import client from "../config/redis.js"
 
 
 const Totalttl=60;
-const Max_request=2;
+const Max_request=5;
 
 const SubmitLimiter=async (req,res,next) =>{
     try{
