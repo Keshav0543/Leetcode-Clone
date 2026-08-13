@@ -1,5 +1,7 @@
 import problem from "../models/problem.js";
 import SubmissionS from "../models/Submission.js";
+import Contest from "../models/contest.js";
+import Contestparticipant from "../models/contestParticipant.js";
 import {
   getlanguageId,
   submitBatch,
@@ -11,12 +13,59 @@ const SubmitCode = async (req, res) => {
     const userId = req.result._id;
     const problemId = req.params.id;
 
-    const { code, language } = req.body;
+    const { code, language, contest_id } = req.body;
     if (!userId || !problemId || !code || !language)
       return res.status(400).send("Field is Missing...");
 
+    let contestcheck, ParticipantCheck;
+    if (contest_id) {
+      contestcheck = await Contest.findById(contest_id);
+
+      if (!contestcheck) throw new Error("Selected Contest is not valid...");
+
+      ParticipantCheck = await Contestparticipant.findOne({
+        contest_id,
+        user_id: req.result._id,
+      });
+
+      if (!ParticipantCheck)
+        throw new Error("User is not registered in Contest...");
+
+      if (ParticipantCheck.status !== "started")
+        throw new Error("Contest is not started...");
+
+      // Check whether this problem belongs to this contest
+      const isPresent = contestcheck.problem.some(
+        (data) => data.problemId.toString() === problemId.toString(),
+      );
+
+      if (!isPresent)
+        throw new Error("Problem is not present in this contest...");
+
+      const currentTime = new Date();
+
+      const userDeadline = new Date(
+        ParticipantCheck.startedAt.getTime() + 90 * 60 * 1000,
+      );
+
+      // Actual deadline = whichever comes first
+      const finalDeadline =
+        userDeadline < contestcheck.endTime
+          ? userDeadline
+          : contestcheck.endTime;
+
+      // Small grace period for network/request delay
+      const gracePeriod = 5 * 1000;
+
+      const allowedUntil = new Date(finalDeadline.getTime() + gracePeriod);
+
+      if (currentTime > allowedUntil)
+        throw new Error("Contest submission time has expired...");
+    }
+
     //Fetch The Problem
     const Problem = await problem.findById(problemId);
+    if (!Problem) throw new Error("Problem not found...");
     //Now we have test cases from above
 
     const SubmittedResult = await SubmissionS.create({
@@ -119,11 +168,13 @@ const SubmitCode = async (req, res) => {
     SubmittedResult.memory = memory;
     SubmittedResult.errorMessage = errorMessage;
 
+    if (contestcheck) SubmittedResult.contestId = contest_id;
+
     await SubmittedResult.save();
 
     //Problem Id insert in User Schema problem section if it is not present
     if (
-      SubmittedResult.status==="Accepted" &&
+      SubmittedResult.status === "Accepted" &&
       !req.result.ProblemSolved.includes(problemId)
     ) {
       req.result.ProblemSolved.push(problemId);
@@ -179,22 +230,21 @@ const RunCode = async (req, res) => {
   }
 };
 
-const getSubmissionDetail= async (req,res) =>{
-  try{
-    const {problemId}=req.params;
-    const userId= req.result?._id;
-    if(!userId)throw new Error("u Dont have access to this information...");
-    if(!problemId)throw new Error("Something went wrong...");
-    const detail=await SubmissionS.find({
+const getSubmissionDetail = async (req, res) => {
+  try {
+    const { problemId } = req.params;
+    const userId = req.result?._id;
+    if (!userId) throw new Error("u Dont have access to this information...");
+    if (!problemId) throw new Error("Something went wrong...");
+    const detail = await SubmissionS.find({
       userId,
-      problemId
-    }).sort({createdAt: -1});
+      problemId,
+    }).sort({ createdAt: -1 });
 
     res.status(200).json(detail);
-  }
-  catch(err){
-    res.status(400).send("Error: "+err.message);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
   }
 };
 
-export default { SubmitCode, RunCode , getSubmissionDetail};
+export default { SubmitCode, RunCode, getSubmissionDetail };
