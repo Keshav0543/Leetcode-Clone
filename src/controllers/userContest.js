@@ -5,15 +5,34 @@ import SubmissionS from "../models/Submission.js";
 
 const createContest = async (req, res) => {
   try {
+    const { qualifier, type } = req.body;
+
+    if (type === "sunday") {
+      if (!qualifier) {
+        throw new Error("Saturday qualifier contest is required...");
+      }
+
+      const saturdayContest = await Contest.findById(qualifier);
+
+      if (!saturdayContest) {
+        throw new Error("Reference Saturday contest does not exist...");
+      }
+
+      if (saturdayContest.type !== "saturday") {
+        throw new Error("Reference Saturday ID is not valid...");
+      }
+    }
+
     const result = await Contest.create({
       ...req.body,
     });
+
     res.status(201).json({
       contest_id: result._id,
-      message: `${result.type} Created SuccessFfully...`,
+      message: `${result.type} Created Successfully...`,
     });
   } catch (error) {
-    res.status(404).json({
+    res.status(400).json({
       message: error.message,
     });
   }
@@ -54,56 +73,95 @@ const contestRegister = async (req, res) => {
   try {
     const { contest_id } = req.body;
     const user_id = req.result._id;
-    if (!contest_id) throw new Error("Select Contest Before begin...");
-    if (!user_id) throw new Error("Logged in first to continue....");
 
-    const [iscontestvalid] = await Promise.all([Contest.findById(contest_id)]);
+    if (!contest_id)
+      throw new Error("Select Contest Before begin...");
 
-    if (!iscontestvalid) throw new Error("Selected Contest is not present...");
+    if (!user_id)
+      throw new Error("Logged in first to continue....");
+
+    const iscontestvalid = await Contest.findById(contest_id);
+
+    if (!iscontestvalid)
+      throw new Error("Selected Contest is not present...");
 
     const currentTime = new Date();
+
     if (currentTime < iscontestvalid.startTime)
-      throw new Error("Contest Registeration Not Started yet...");
+      throw new Error("Contest Registration Not Started yet...");
 
     const isavailable = await Contestparticipant.exists({
       contest_id,
       user_id,
     });
-    if (isavailable) throw new Error("Already registered for this contest...");
 
+    if (isavailable)
+      throw new Error("Already registered for this contest...");
+
+    // Saturday Contest
     if (iscontestvalid.type === "saturday") {
-      const result = await Contestparticipant.create({ contest_id, user_id });
+      const result = await Contestparticipant.create({
+        contest_id,
+        user_id,
+      });
+
       return res.status(201).json({
         message: "Successfully registered for Saturday contest...",
         participant: result,
       });
     }
 
-    if (iscontestvalid.type === "sunday") {
-      if (!iscontestvalid.qualifierContest)
-        throw new Error("Qualifier contest is not linked...");
+    // Sunday Contest
+    else if (iscontestvalid.type === "sunday") {
 
+      // Sunday must have a qualifier contest
+      if (!iscontestvalid.qualifier)
+        throw new Error(
+          "You are not eligible for this contest, try to join Saturday contest first..."
+        );
+
+      // Find user's participation in the qualifying Saturday contest
       const saturdayParticipant = await Contestparticipant.findOne({
-        contest_id: iscontestvalid.qualifierContest,
+        contest_id: iscontestvalid.qualifier,
         user_id,
       });
 
+      // User didn't participate in the qualifying Saturday
       if (!saturdayParticipant)
-        throw new Error("You did not participate in the Saturday contest...");
-
-      if (saturdayParticipant.rank == null || saturdayParticipant.rank > 80)
         throw new Error(
-          "You are not eligible. Only Saturday's top 80 can join...",
+          "You did not participate in the qualifying Saturday contest..."
         );
 
-      const result = await Contestparticipant.create({ contest_id, user_id });
+      // User participated but was not admitted
+      if (!saturdayParticipant.admittedFrom)
+        throw new Error(
+          "You are not eligible for Sunday Contest..."
+        );
+
+      // Make sure admission came from THIS qualifier contest
+      if (
+        saturdayParticipant.admittedFrom.toString() !==
+        iscontestvalid.qualifier.toString()
+      ) {
+        throw new Error(
+          "You are not eligible for this Sunday Contest..."
+        );
+      }
+
+      // Register user for Sunday
+      const participant = await Contestparticipant.create({
+        contest_id,
+        user_id,
+      });
+
       return res.status(201).json({
-        message: "Successfully registered for Sunday final...",
-        participant: result,
+        message: "Successfully registered for Sunday contest...",
+        participant,
       });
     }
 
     throw new Error("Invalid contest type...");
+
   } catch (error) {
     res.status(400).json({
       message: error.message,
@@ -148,7 +206,7 @@ const startContest = async (req, res) => {
   }
 };
 
-const FinishContest = async (req, res) => {
+const finishContest = async (req, res) => {
   try {
     const { contest_id } = req.body;
 
@@ -242,4 +300,5 @@ export default {
   getSpecific,
   contestRegister,
   contestRegister,
+  finishContest
 };

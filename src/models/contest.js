@@ -49,11 +49,13 @@ const contestSchema = new Schema(
         message: "End time must be greater than start time",
       },
     },
-    qualifierContest: {
-      type: Schema.Types.ObjectId,
+
+    qualifier: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "contest",
       default: null,
     },
+
     rules: [String],
   },
   { timestamps: true },

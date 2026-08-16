@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const contestParticipant = new Schema({
   contest_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "contest",
+    ref: "contest", 
     required: true,
   },
   user_id: {
@@ -37,6 +37,11 @@ const contestParticipant = new Schema({
   resultsCalculated: {
     type: Boolean,
     default: false,
+  },
+  admittedFromContest: {
+    type:mongoose.Schema.ObjectId,
+    ref:"contest",
+    default:null
   },
 });
 

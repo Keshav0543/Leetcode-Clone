@@ -8,6 +8,7 @@ ContestRouter.post("/contest/create", adminMiddleware, contestController.createC
 ContestRouter.get("/contest", userMiddleware, contestController.getContest);
 ContestRouter.get("/contest/:id", userMiddleware, contestController.getSpecific);
 ContestRouter.post("/contest/register",userMiddleware, contestController.contestRegister);
+ContestRouter.post("/contest/finish",userMiddleware, contestController.finishContest);
 
 
 export default ContestRouter;
