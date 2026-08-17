@@ -56,6 +56,11 @@ const contestSchema = new Schema(
       default: null,
     },
 
+    qualificationProcessed: {
+      type: Boolean,
+      default: false,
+    },
+
     rules: [String],
   },
   { timestamps: true },

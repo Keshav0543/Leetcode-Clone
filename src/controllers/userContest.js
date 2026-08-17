@@ -133,14 +133,14 @@ const contestRegister = async (req, res) => {
         );
 
       // User participated but was not admitted
-      if (!saturdayParticipant.admittedFrom)
+      if (!saturdayParticipant.admittedFromContest)
         throw new Error(
           "You are not eligible for Sunday Contest..."
         );
 
       // Make sure admission came from THIS qualifier contest
       if (
-        saturdayParticipant.admittedFrom.toString() !==
+        saturdayParticipant.admittedFromContest.toString() !==
         iscontestvalid.qualifier.toString()
       ) {
         throw new Error(
