@@ -101,7 +101,17 @@ const getSpecific = async (req, res) => {
     if (!id) throw new Error("ID is not present...");
     const info = await Contest.findById(id);
     if (!info) throw new Error("Select Valid Contest...");
-    res.status(200).json(info);
+
+    function getStatus(){
+      if(info.status==="Upcoming")return "Upcoming";
+      else if(info.status==="Live")return "Live";
+      else return "Ended";
+    }
+
+    res.status(200).json({
+      contest:info,
+      status:getStatus()
+    });
   } catch (error) {
     res.status(404).json({
       message: error.message,
