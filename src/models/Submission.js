@@ -61,7 +61,7 @@ const submissionSchema = new Schema({
   }
 },{timestamps:true});
 
-submissionSchema.index({userId:1, problemId:1, contestId});
+submissionSchema.index({userId:1, problemId:1, contestId:1});
 
 const SubmissionS= mongoose.model("submissionS",submissionSchema);
 
