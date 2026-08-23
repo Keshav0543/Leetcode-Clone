@@ -1,5 +1,4 @@
 import Contest from "../models/contest.js";
-import User from "../models/user.js";
 import Contestparticipant from "../models/contestParticipant.js";
 import SubmissionS from "../models/Submission.js";
 import getWeekendRange from "../utils/Rangefind.js";
@@ -71,7 +70,7 @@ const getContest = async (req, res) => {
       }
 
       if (currTime >= contest.startTime && currTime < contest.endTime) {
-        return "Running";
+        return "Live";
       }
 
       return "Expired";
@@ -102,15 +101,35 @@ const getSpecific = async (req, res) => {
     const info = await Contest.findById(id);
     if (!info) throw new Error("Select Valid Contest...");
 
-    function getStatus(){
-      if(info.status==="Upcoming")return "Upcoming";
-      else if(info.status==="Live")return "Live";
-      else return "Ended";
+    const serverTime = Date.now();
+    const startDiff = info.startTime.getTime() - serverTime;
+    const endDiff = info.endTime.getTime() - serverTime;
+    const isRegistered = await Contestparticipant.exists({
+      contest_id: id,
+      user_id: req.result._id,
+    });
+
+    let status, delay;
+
+    if (startDiff > 0) {
+      status = "Upcoming";
+      delay = startDiff; // itne ms baad contest live hoga
+    } else if (startDiff <= 0 && endDiff > 0) {
+      status = "Live";
+      delay = endDiff; // itne ms baad contest end hoga
+    } else {
+      status = "Expired";
+      delay = null; // ab wait karne ko kuch nahi
     }
 
+    info.status = status;
+    await info.save();
     res.status(200).json({
-      contest:info,
-      status:getStatus()
+      contest: info,
+      status,
+      delay,
+      serverTime, // frontend ka clock drift adjust karne ke liye
+      isRegistered: !!isRegistered,
     });
   } catch (error) {
     res.status(404).json({
@@ -131,11 +150,6 @@ const contestRegister = async (req, res) => {
     const iscontestvalid = await Contest.findById(contest_id);
 
     if (!iscontestvalid) throw new Error("Selected Contest is not present...");
-
-    const currentTime = new Date();
-
-    if (currentTime < iscontestvalid.startTime)
-      throw new Error("Contest Registration Not Started yet...");
 
     const isavailable = await Contestparticipant.exists({
       contest_id,
@@ -211,17 +225,17 @@ const contestRegister = async (req, res) => {
 
 const startContest = async (req, res) => {
   try {
-    const { contest_id } = req.body;
-    if (!contest_id) throw new Error("Contest Id is not available...");
+    const { id } = req.params;
+    if (!id) throw new Error("Contest Id is not available...");
     const user_id = req.result._id;
     const isregister = await Contestparticipant.findOne({
-      contest_id,
+      contest_id: id,
       user_id,
     });
     if (!isregister)
       throw new Error("You Are Not Register For This contest...");
     const contestInfo =
-      await Contest.findById(contest_id).populate("problem.problemId");
+      await Contest.findById(id).populate("problem.problemId");
     if (!contestInfo)
       throw new Error("contestId is wrong try again with ActualId...");
     const currTime = new Date();
@@ -229,103 +243,18 @@ const startContest = async (req, res) => {
       throw new Error("Contest has not started yet...");
     if (currTime > contestInfo.endTime)
       throw new Error("This Contest is Not available...");
-    if (isregister.startedAt) throw new Error("Contest is started allready");
-    isregister.startedAt = currTime;
-    isregister.status = "started";
+    if (!isregister.startedAt) {
+      isregister.startedAt = currTime;
+      isregister.status = "started";
+    }
     const problemInfo = contestInfo.problem;
     await isregister.save();
+    const usertime = currTime.getTime() + 90 * 60 * 1000;
     res.status(200).json({
       ProblemInfo: problemInfo,
       startTimer: isregister.startedAt,
-      FinishcontestTime: contestInfo.endTime,
-    });
-  } catch (error) {
-    res.status(400).json({
-      message: error.message,
-    });
-  }
-};
-
-const finishContest = async (req, res) => {
-  try {
-    const { contest_id } = req.body;
-
-    if (!contest_id) throw new Error("Contest is not present...");
-
-    const user_id = req.result._id;
-
-    if (!user_id)
-      throw new Error("You don't have permission to access this...");
-
-    const resultdoc = await Contestparticipant.findOne({
-      contest_id,
-      user_id,
-    });
-
-    if (!resultdoc)
-      throw new Error("User is not registered for this contest...");
-
-    if (resultdoc.status === "finished")
-      throw new Error("Already submitted your contest...");
-
-    if (resultdoc.status !== "started")
-      throw new Error("User hasn't started the contest...");
-
-    const contestInfo = await Contest.findById(contest_id);
-
-    if (!contestInfo) throw new Error("Contest not found...");
-
-    const currentTime = new Date();
-
-    // User's 90-minute deadline
-    const userDeadline = new Date(
-      resultdoc.startedAt.getTime() + 90 * 60 * 1000,
-    );
-
-    // Actual deadline is whichever comes first:
-    // user's 90-minute deadline OR global contest end time
-    const finalDeadline =
-      userDeadline < contestInfo.endTime ? userDeadline : contestInfo.endTime;
-
-    // Allow a small grace period for network/request delay
-    const gracePeriod = 5 * 1000; // 5 seconds
-
-    const allowedUntil = new Date(finalDeadline.getTime() + gracePeriod);
-
-    if (currentTime > allowedUntil) {
-      throw new Error("Contest finish time has expired...");
-    }
-
-    const SavedResult = await SubmissionS.find({
-      userId: user_id,
-      contestId: contest_id,
-    });
-
-    const AcceptedData = new Set();
-
-    for (const obj of SavedResult) {
-      if (obj.status === "Accepted") {
-        AcceptedData.add(obj.problemId);
-      }
-    }
-
-    let countScore = 0;
-
-    for (const obj of contestInfo.problem) {
-      if (AcceptedData.has(obj.problemId)) {
-        countScore += obj.points;
-      }
-    }
-
-    resultdoc.score = countScore;
-    resultdoc.status = "finished";
-    resultdoc.finishedAt = currentTime;
-
-    await resultdoc.save();
-
-    res.status(200).json({
-      message: "Contest Successfully Closed...",
-      score: countScore,
+      FinishcontestTime:
+        usertime < contestInfo.endTime ? usertime : contestInfo.endTime,
     });
   } catch (error) {
     res.status(400).json({
@@ -339,6 +268,5 @@ export default {
   getContest,
   getSpecific,
   contestRegister,
-  contestRegister,
-  finishContest,
+  startContest,
 };

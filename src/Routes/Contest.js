@@ -7,8 +7,7 @@ const ContestRouter=express.Router();
 ContestRouter.post("/contest/create", adminMiddleware, contestController.createContest);
 ContestRouter.get("/contest", userMiddleware, contestController.getContest);
 ContestRouter.get("/contest/:id", userMiddleware, contestController.getSpecific);
-ContestRouter.post("/contest/register",userMiddleware, contestController.contestRegister);
-ContestRouter.post("/contest/finish",userMiddleware, contestController.finishContest);
-
+ContestRouter.post("/contest/register",userMiddleware,contestController.contestRegister);
+ContestRouter.get("/contest/:id/arena",userMiddleware,contestController.startContest);
 
 export default ContestRouter;

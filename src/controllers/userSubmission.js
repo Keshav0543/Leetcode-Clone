@@ -247,4 +247,106 @@ const getSubmissionDetail = async (req, res) => {
   }
 };
 
-export default { SubmitCode, RunCode, getSubmissionDetail };
+const getcontestSubmissionDetail = async (req, res) => {
+  try {
+    const { contest_id } = req.params;
+    const userId = req.result?._id;
+
+    // 1. Check authentication/user information
+    if (!userId) {
+      return res.status(401).json({
+        message: "User is not authenticated.",
+      });
+    }
+
+    // 2. Check contest ID
+    if (!contest_id) {
+      return res.status(400).json({
+        message: "Contest is not selected.",
+      });
+    }
+
+    // 3. Check whether contest_id is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(contest_id)) {
+      return res.status(400).json({
+        message: "Invalid contest ID.",
+      });
+    }
+
+    // 4. Check whether contest exists
+    const contestResult = await Contest.findById(contest_id).select(
+      "problem title startTime endTime status",
+    );
+
+    if (!contestResult) {
+      return res.status(404).json({
+        message: "Contest not found.",
+      });
+    }
+
+    // 5. Check whether user participated in this contest
+    const isParticipated = await Contestparticipant.findOne({
+      contest_id: contest_id,
+      user_id: userId,
+    }).select("_id");
+
+    if (!isParticipated) {
+      return res.status(403).json({
+        message: "User did not participate in this contest.",
+      });
+    }
+
+    // 6. Get only accepted submissions
+    const resultSubmission = await SubmissionS.find({
+      contestId: contest_id,
+      userId: userId,
+      status: "Accepted",
+    }).select("problemId");
+
+    // 7. No accepted submissions
+    if (resultSubmission.length === 0) {
+      return res.status(200).json({
+        points: 0,
+        solved: 0,
+        message: "Nothing solved by user.",
+      });
+    }
+
+    // 8. Store unique solved problem IDs
+    const solvedProblemIds = new Set();
+
+    for (const submission of resultSubmission) {
+      if (submission.problemId) {
+        solvedProblemIds.add(submission.problemId.toString());
+      }
+    }
+
+    // 9. Calculate score using contest's problem configuration
+    let solved = 0;
+    let points = 0;
+
+    for (const problem of contestResult.problem) {
+      if (!problem.problemId) continue;
+
+      if (solvedProblemIds.has(problem.problemId.toString())) {
+        solved++;
+        points += problem.points;
+      }
+    }
+
+    // 10. Return result
+    return res.status(200).json({
+      points,
+      solved,
+      message: "Contest submission details fetched successfully.",
+    });
+  } catch (error) {
+    console.error("getcontestSubmissionDetail error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong while fetching contest result.",
+    });
+  }
+};
+
+export default { SubmitCode, RunCode, getSubmissionDetail, getcontestSubmissionDetail};

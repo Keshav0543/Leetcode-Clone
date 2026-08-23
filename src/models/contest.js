@@ -32,7 +32,7 @@ const contestSchema = new Schema(
     ],
     status: {
       type: String,
-      enum: ["Upcoming", "Live", "Ended"],
+      enum: ["Upcoming", "Live", "Expired"],
       default: "Upcoming",
     },
     startTime: {
