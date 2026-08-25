@@ -41,56 +41,43 @@ const createContest = async (req, res) => {
 const getContest = async (req, res) => {
   try {
     const { startOfSaturday, startOfMonday } = getWeekendRange();
-
     const currTime = new Date();
 
     const result = await Contest.find({
-      startTime: {
-        $gte: startOfSaturday,
-        $lt: startOfMonday,
-      },
-      endTime: {
-        $gt: currTime,
-      },
+      startTime: { $gte: startOfSaturday, $lt: startOfMonday },
     });
 
-    const saturdayContest = result.find(
-      (contest) => contest.type === "saturday",
-    );
-
-    const sundayContest = result.find((contest) => contest.type === "sunday");
+    const saturdayContest = result.find((c) => c.type === "saturday");
+    const sundayContest = result.find((c) => c.type === "sunday");
 
     const getStatus = (contest) => {
-      if (!contest) {
-        return "Expired";
-      }
+      if (!contest) return { status: "Not Available", delay: 0 };
 
-      if (currTime < contest.startTime) {
-        return "Upcoming";
-      }
+      const startDiff = contest.startTime.getTime() - currTime.getTime();
+      const endDiff = contest.endTime.getTime() - currTime.getTime();
 
-      if (currTime >= contest.startTime && currTime < contest.endTime) {
-        return "Live";
-      }
-
-      return "Expired";
+      if (startDiff > 0) return { status: "Upcoming", delay: startDiff };
+      if (endDiff > 0) return { status: "Live", delay: endDiff };
+      return { status: "Expired", delay: 0 };
     };
+
+    const sat = getStatus(saturdayContest);
+    const sun = getStatus(sundayContest);
 
     res.status(200).json({
       saturdayContest: {
         contest: saturdayContest || null,
-        status: getStatus(saturdayContest),
+        status: sat.status,
+        delay: sat.delay,
       },
-
       sundayContest: {
         contest: sundayContest || null,
-        status: getStatus(sundayContest),
+        status: sun.status,
+        delay: sun.delay,
       },
     });
   } catch (error) {
-    res.status(404).json({
-      message: error.message,
-    });
+    res.status(404).json({ message: error.message });
   }
 };
 
@@ -101,7 +88,7 @@ const getSpecific = async (req, res) => {
     const info = await Contest.findById(id);
     if (!info) throw new Error("Select Valid Contest...");
 
-    const serverTime = Date.now();
+    const serverTime = new Date();
     const startDiff = info.startTime.getTime() - serverTime;
     const endDiff = info.endTime.getTime() - serverTime;
     const isRegistered = await Contestparticipant.exists({

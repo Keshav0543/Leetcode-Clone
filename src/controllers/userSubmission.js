@@ -2,6 +2,7 @@ import problem from "../models/problem.js";
 import SubmissionS from "../models/Submission.js";
 import Contest from "../models/contest.js";
 import Contestparticipant from "../models/contestParticipant.js";
+import mongoose from "mongoose";
 import {
   getlanguageId,
   submitBatch,
@@ -249,11 +250,13 @@ const getSubmissionDetail = async (req, res) => {
 
 const getcontestSubmissionDetail = async (req, res) => {
   try {
+    console.log("req yaha aaya1");
     const { contest_id } = req.params;
     const userId = req.result?._id;
 
     // 1. Check authentication/user information
     if (!userId) {
+      console.log("req yaha aaya2");
       return res.status(401).json({
         message: "User is not authenticated.",
       });
@@ -261,6 +264,7 @@ const getcontestSubmissionDetail = async (req, res) => {
 
     // 2. Check contest ID
     if (!contest_id) {
+      console.log("req yaha aaya3");
       return res.status(400).json({
         message: "Contest is not selected.",
       });
@@ -268,6 +272,7 @@ const getcontestSubmissionDetail = async (req, res) => {
 
     // 3. Check whether contest_id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(contest_id)) {
+      console.log("req yaha aaya4");
       return res.status(400).json({
         message: "Invalid contest ID.",
       });
@@ -279,6 +284,7 @@ const getcontestSubmissionDetail = async (req, res) => {
     );
 
     if (!contestResult) {
+      console.log("req yaha aaya5");
       return res.status(404).json({
         message: "Contest not found.",
       });
@@ -291,6 +297,7 @@ const getcontestSubmissionDetail = async (req, res) => {
     }).select("_id");
 
     if (!isParticipated) {
+      console.log("req yaha aaya6");
       return res.status(403).json({
         message: "User did not participate in this contest.",
       });
@@ -305,6 +312,7 @@ const getcontestSubmissionDetail = async (req, res) => {
 
     // 7. No accepted submissions
     if (resultSubmission.length === 0) {
+      console.log("req yaha aaya7");
       return res.status(200).json({
         points: 0,
         solved: 0,
@@ -335,6 +343,7 @@ const getcontestSubmissionDetail = async (req, res) => {
     }
 
     // 10. Return result
+    console.log("req yaha aaya3");
     return res.status(200).json({
       points,
       solved,
