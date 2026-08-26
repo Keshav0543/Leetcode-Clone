@@ -1,6 +1,5 @@
 import Contest from "../models/contest.js";
 import Contestparticipant from "../models/contestParticipant.js";
-import SubmissionS from "../models/Submission.js";
 import getWeekendRange from "../utils/Rangefind.js";
 
 const createContest = async (req, res) => {
@@ -78,6 +77,65 @@ const getContest = async (req, res) => {
     });
   } catch (error) {
     res.status(404).json({ message: error.message });
+  }
+};
+
+const deleteContest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Select the contest to delete..."
+      });
+    }
+
+    let result = await Contest.findOne({_id:id,type:"saturday"});
+    let sundayResult;
+    if(result!==null)sundayResult=await Contest.findOne({ qualifier: id });
+    else if(!result)sundayResult=await Contest.findById(id);
+
+    if(!result && sundayResult!==null)result=await Contest.findOne({_id:sundayResult.qualifier});
+
+    if (!result && !sundayResult) {
+      return res.status(404).json({
+        message: "Selected Contest is not there..."
+      });
+    }
+
+    // Don't allow deletion if either contest is Live
+    if (
+      result.status === "Live" ||
+      (sundayResult && sundayResult.status === "Live")
+    ) {
+      return res.status(403).json({
+        message: "Access is denied to delete a Live event..."
+      });
+    }
+
+    // Delete Saturday contest
+    await Contest.deleteOne({ _id: result._id });
+
+    // If there is no dependent Sunday contest
+    if (!sundayResult) {
+      return res.status(200).json({
+        message: "Saturday Contest deleted successfully..."
+      });
+    }
+
+    // Delete dependent Sunday contest
+    await Contest.deleteOne({ _id: sundayResult._id });
+
+    return res.status(200).json({
+      message: "Both Battles deleted successfully..."
+    });
+
+  } catch (error) {
+    console.error("deleteContest error:", error);
+
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
   }
 };
 
@@ -250,10 +308,28 @@ const startContest = async (req, res) => {
   }
 };
 
+const getSaturdayContests = async (req, res) => {
+  try {
+    const latestSaturdayContest = await Contest.findOne({ type: "saturday" })
+      .sort({ createdAt: -1 })
+      .select("_id title startTime");
+
+    if (!latestSaturdayContest) {
+      return res.status(404).json({ message: "No Saturday contest found" });
+    }
+
+    res.status(200).json(latestSaturdayContest);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export default {
   createContest,
   getContest,
   getSpecific,
   contestRegister,
   startContest,
+  deleteContest,
+  getSaturdayContests
 };
