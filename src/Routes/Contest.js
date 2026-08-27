@@ -12,12 +12,22 @@ ContestRouter.post(
 );
 
 ContestRouter.get(
+  "/contest/history",
+  adminMiddleware,
+  contestController.FetchAllContest,
+);
+
+ContestRouter.get(
   "/contest/saturday-latest",
   adminMiddleware,
   contestController.getSaturdayContests,
 );
 
-ContestRouter.get("/contest", userMiddleware, contestController.getContest);
+ContestRouter.get(
+  "/contest",
+  userMiddleware,
+  contestController.getLatestContest,
+);
 ContestRouter.get(
   "/contest/:id",
   userMiddleware,

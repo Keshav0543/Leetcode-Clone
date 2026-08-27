@@ -37,7 +37,7 @@ const createContest = async (req, res) => {
   }
 };
 
-const getContest = async (req, res) => {
+const getLatestContest = async (req, res) => {
   try {
     const { startOfSaturday, startOfMonday } = getWeekendRange();
     const currTime = new Date();
@@ -317,19 +317,40 @@ const getSaturdayContests = async (req, res) => {
     if (!latestSaturdayContest) {
       return res.status(404).json({ message: "No Saturday contest found" });
     }
-
+    console.log(latestSaturdayContest);
     res.status(200).json(latestSaturdayContest);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
+const FetchAllContest = async (req,res) =>{
+  try{
+     console.log("controler working...");
+    let {page,limit}=req.query;
+    let skip=(Number(page)-1)*Number(limit);
+    const contestHistory=await Contest.find({}).sort({createdAt:-1}).skip(skip).limit(Number(limit));
+    if(contestHistory.length==0)return res.status(200).json({
+      contestData:[]
+    });
+    res.status(200).json({
+      contestData:contestHistory
+    });
+  }
+  catch(error){
+    res.status(400).json({
+      message:error.message
+    });
+  }
+};
+
 export default {
   createContest,
-  getContest,
+  getLatestContest,
   getSpecific,
   contestRegister,
   startContest,
   deleteContest,
-  getSaturdayContests
+  getSaturdayContests,
+  FetchAllContest
 };
