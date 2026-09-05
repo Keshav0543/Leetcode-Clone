@@ -250,77 +250,61 @@ const getSubmissionDetail = async (req, res) => {
 
 const getcontestSubmissionDetail = async (req, res) => {
   try {
-    console.log("req yaha aaya1");
     const { contest_id } = req.params;
     const userId = req.result?._id;
 
-    // 1. Check authentication/user information
+    // 1. Authentication
     if (!userId) {
-      console.log("req yaha aaya2");
       return res.status(401).json({
         message: "User is not authenticated.",
       });
     }
 
-    // 2. Check contest ID
+    // 2. Contest ID
     if (!contest_id) {
-      console.log("req yaha aaya3");
       return res.status(400).json({
         message: "Contest is not selected.",
       });
     }
 
-    // 3. Check whether contest_id is a valid MongoDB ObjectId
+    // 3. Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(contest_id)) {
-      console.log("req yaha aaya4");
       return res.status(400).json({
         message: "Invalid contest ID.",
       });
     }
 
-    // 4. Check whether contest exists
+    // 4. Check contest
     const contestResult = await Contest.findById(contest_id).select(
-      "problem title startTime endTime status",
+      "problem title startTime endTime status"
     );
 
     if (!contestResult) {
-      console.log("req yaha aaya5");
       return res.status(404).json({
         message: "Contest not found.",
       });
     }
 
-    // 5. Check whether user participated in this contest
+    // 5. Check participation
     const isParticipated = await Contestparticipant.findOne({
       contest_id: contest_id,
       user_id: userId,
-    }).select("_id");
+    });
 
     if (!isParticipated) {
-      console.log("req yaha aaya6");
       return res.status(403).json({
         message: "User did not participate in this contest.",
       });
     }
 
-    // 6. Get only accepted submissions
+    // 6. Get accepted submissions
     const resultSubmission = await SubmissionS.find({
       contestId: contest_id,
       userId: userId,
       status: "Accepted",
     }).select("problemId");
 
-    // 7. No accepted submissions
-    if (resultSubmission.length === 0) {
-      console.log("req yaha aaya7");
-      return res.status(200).json({
-        points: 0,
-        solved: 0,
-        message: "Nothing solved by user.",
-      });
-    }
-
-    // 8. Store unique solved problem IDs
+    // 7. Store unique solved problems
     const solvedProblemIds = new Set();
 
     for (const submission of resultSubmission) {
@@ -329,7 +313,7 @@ const getcontestSubmissionDetail = async (req, res) => {
       }
     }
 
-    // 9. Calculate score using contest's problem configuration
+    // 8. Calculate score
     let solved = 0;
     let points = 0;
 
@@ -342,13 +326,22 @@ const getcontestSubmissionDetail = async (req, res) => {
       }
     }
 
+    // 9. Save result
+    isParticipated.score = points;
+    isParticipated.resultsCalculated = true;
+
+    await isParticipated.save();
+
     // 10. Return result
-    console.log("req yaha aaya3");
     return res.status(200).json({
+      title: contestResult.title,
+      totalProblems: contestResult.problem.length,
       points,
       solved,
+      solvedProblemIds: [...solvedProblemIds],
       message: "Contest submission details fetched successfully.",
     });
+
   } catch (error) {
     console.error("getcontestSubmissionDetail error:", error);
 

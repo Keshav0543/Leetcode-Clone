@@ -56,7 +56,7 @@ const contestSchema = new Schema(
       default: null,
     },
 
-    qualificationProcessed: {
+    ratingCalculated: {
       type: Boolean,
       default: false,
     },

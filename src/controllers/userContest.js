@@ -279,6 +279,7 @@ const startContest = async (req, res) => {
     });
     if (!isregister)
       throw new Error("You Are Not Register For This contest...");
+    if(isregister.resultsCalculated)throw new Error("You are allready Submitted Contest...");
     const contestInfo =
       await Contest.findById(id).populate("problem.problemId");
     if (!contestInfo)
@@ -288,12 +289,12 @@ const startContest = async (req, res) => {
       throw new Error("Contest has not started yet...");
     if (currTime > contestInfo.endTime)
       throw new Error("This Contest is Not available...");
-    if (!isregister.startedAt) {
-      isregister.startedAt = currTime;
-      isregister.status = "started";
-    }
+    // if (!isregister.startedAt) {
+    //   isregister.startedAt = currTime;
+    //   isregister.status = "started";
+    // }
     const problemInfo = contestInfo.problem;
-    await isregister.save();
+    // await isregister.save();
     const usertime = currTime.getTime() + 90 * 60 * 1000;
     res.status(200).json({
       ProblemInfo: problemInfo,

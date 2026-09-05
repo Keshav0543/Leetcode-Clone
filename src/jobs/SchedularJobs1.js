@@ -1,24 +1,47 @@
-import cron from 'node-cron';
-import Contest from '../models/contest.js';
-import contestRank from "../services/contestRank.js";
-import updateAdmitted from '../services/contestAdmitted.js';
+import cron from "node-cron";
+import StatusUpdate from "../services/ContestStatus.js";
+import calculateRatting from "../services/contestRank.js";
 
-const getContestid = async () => {
-    try {
-        const result = await Contest.findOne({
-            type: "saturday",
-            endTime: { $lt: new Date() },
-            qualificationProcessed:false
-        });
-        return result;
-    } catch (error) {
-        console.log(`Error: ${error.message}`);
-    }
-};
+//For Saturday Contest jobs
+cron.schedule(
+  "16 0 * * 6",
+  () => {
+    StatusUpdate();
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);
 
-cron.schedule('0 0 * * 6', async ()=>{
-    const result=await getContestid();
-    await updateAdmitted(result._id);
-    result.qualificationProcessed=true;
-    await result.save();
-},{timezone:"Asia/Kolkata"});
+cron.schedule(
+  "16 0 * * 7",
+  async () => {
+    await StatusUpdate();
+    await calculateRatting();
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);
+
+//For Sunday Contest jobs
+cron.schedule(
+  "20 0 * * 7",
+  () => {
+    StatusUpdate();
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);
+
+cron.schedule(
+  "20 0 * * 1",
+  async () => {
+    await StatusUpdate();
+    await calculateRatting();
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);

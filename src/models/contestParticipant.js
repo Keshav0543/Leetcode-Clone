@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const contestParticipant = new Schema({
   contest_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "contest", 
+    ref: "contest",
     required: true,
   },
   user_id: {
@@ -17,7 +17,15 @@ const contestParticipant = new Schema({
     type: Number,
     default: 0,
   },
-  rank: {
+  ratingChange: {
+    type: Number,
+    default: null,
+  },
+  ratingBefore: {
+    type: Number,
+    default: null,
+  },
+  ratingAfter: {
     type: Number,
     default: null,
   },
@@ -39,9 +47,9 @@ const contestParticipant = new Schema({
     default: false,
   },
   admittedFromContest: {
-    type:mongoose.Schema.ObjectId,
-    ref:"contest",
-    default:null
+    type: mongoose.Schema.ObjectId,
+    ref: "contest",
+    default: null,
   },
 });
 

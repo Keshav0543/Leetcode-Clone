@@ -9,6 +9,7 @@ import problemRouter from "./Routes/problemCreator.js";
 import SubmitRouter from "./Routes/submit.js";
 import ContestRouter from "./Routes/Contest.js";
 import cors from "cors";
+import "./jobs/SchedularJobs1.js";
 
 const app=express();
 
